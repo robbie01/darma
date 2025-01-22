@@ -140,7 +140,7 @@ long utime() {
 // ----------------------------------------------
 uint64_t rdtsc() {
     uint64_t a;
-    asm volatile ("dsb" ::: "memory");
+    asm volatile ("dsb sy" ::: "memory");
     asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
     return a;
 }
@@ -149,7 +149,7 @@ uint64_t rdtsc() {
 uint64_t rdtsc2() {
     uint64_t a;
     asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
-    asm volatile ("dsb" ::: "memory");
+    asm volatile ("dsb sy" ::: "memory");
     return a;
 }
 
