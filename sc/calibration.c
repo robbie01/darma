@@ -9,27 +9,23 @@
 #define MIN(X,Y) (((X) < (Y)) ? (X) : (Y))
 
 uint64_t rdtsc() {
-  uint64_t a, d;
-  asm volatile ("mfence");
-  asm volatile ("rdtsc" : "=a" (a), "=d" (d));
-  a = (d<<32) | a;
-  asm volatile ("mfence");
-  return a;
+    uint64_t a;
+    asm volatile ("dsb" ::: "memory");
+    asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
+    asm volatile ("dsb" ::: "memory");
+    return a;
 }
 
 void maccess(void* p)
 {
-  asm volatile ("movq (%0), %%rax\n"
+  asm volatile ("ldr x0, [%0]\n"
     :
-    : "c" (p)
-    : "rax");
+    : "r" (p)
+    : "x0");
 }
 
 void flush(void* p) {
-    asm volatile ("clflush 0(%0)\n"
-      :
-      : "c" (p)
-      : "rax");
+  asm volatile("dc civac, %0" : : "r" (p) : "memory");
 }
 
 #define ARRAY_SIZE (16*1024*1024)
