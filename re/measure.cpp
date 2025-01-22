@@ -139,19 +139,17 @@ long utime() {
 
 // ----------------------------------------------
 uint64_t rdtsc() {
-    uint64_t a, d;
-    asm volatile ("xor %%rax, %%rax\n" "cpuid"::: "rax", "rbx", "rcx", "rdx");
-    asm volatile ("rdtscp" : "=a" (a), "=d" (d) : : "rcx");
-    a = (d << 32) | a;
+    uint64_t a;
+    asm volatile ("dsb" ::: "memory");
+    asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
     return a;
 }
 
 // ----------------------------------------------
 uint64_t rdtsc2() {
-    uint64_t a, d;
-    asm volatile ("rdtscp" : "=a" (a), "=d" (d) : : "rcx");
-    asm volatile ("cpuid"::: "rax", "rbx", "rcx", "rdx");
-    a = (d << 32) | a;
+    uint64_t a;
+    asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
+    asm volatile ("dsb" ::: "memory");
     return a;
 }
 
@@ -175,8 +173,8 @@ uint64_t getTiming(pointer first, pointer second) {
             *s;
             *(s + number_of_reads);
 
-            asm volatile("clflush (%0)" : : "r" (f) : "memory");
-            asm volatile("clflush (%0)" : : "r" (s) : "memory");
+            asm volatile("dc civac, %0" : : "r" (f) : "memory");
+            asm volatile("dc civac, %0" : : "r" (s) : "memory");
         }
 
         uint64_t res = (rdtsc2() - t0) / (num_reads);
