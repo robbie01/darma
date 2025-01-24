@@ -58,6 +58,8 @@ size_t getPhysicalMemorySize() {
 
 // ----------------------------------------------
 const char *getCPUModel() {
+    return "idk"; // life's too short to wait for this
+
     static char model[64];
     char *buffer = NULL;
     size_t n, idx;
