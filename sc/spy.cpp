@@ -12,28 +12,31 @@
 #include <sched.h>
 #include <stdint.h>
 
-uint64_t rdtsc() {
-  uint64_t a, d;
-  asm volatile ("mfence");
-  asm volatile ("rdtsc" : "=a" (a), "=d" (d));
-  a = (d<<32) | a;
-  asm volatile ("mfence");
-  return a;
+static inline uint64_t rdtsc() {
+  asm volatile("dsb sy" ::: "memory");
+
+  struct timespec tv;
+  clock_gettime(CLOCK_MONOTONIC_RAW, &tv);
+  uint64_t tsc = ((uint64_t)tv.tv_sec)*1000000000ULL + (uint64_t)tv.tv_nsec;
+
+  asm volatile("dsb sy" ::: "memory");
+
+  return tsc;
 }
 
-void maccess(void* p)
+static inline void maccess(void* p)
 {
-  asm volatile ("movq (%0), %%rax\n"
-    :
-    : "c" (p)
-    : "rax");
+  uint64_t throwaway;
+  asm volatile ("ldr %1, [%0]"
+    : "=r" (throwaway)
+    : "r" (p));
 }
 
-void flush(void* p) {
-    asm volatile ("clflush 0(%0)\n"
+static inline void flush(void* p) {
+    asm volatile ("dc civac, %0"
       :
-      : "c" (p)
-      : "rax");
+      : "r" (p)
+      : "memory");
 }
 
 size_t conflict_mem[1024*1024];
@@ -70,11 +73,10 @@ size_t get_dram_row(void* phys_addr_p) {
 
 size_t get_dram_mapping(void* phys_addr_p) {
   uint64_t phys_addr = (uint64_t) phys_addr_p;
-  static const size_t h0[] = { 14, 18 };
-  static const size_t h1[] = { 15, 19 };
-  static const size_t h2[] = { 16, 20 };
-  static const size_t h3[] = { 17, 21 };
-  static const size_t h4[] = { 7, 8, 9, 12, 13, 18, 19 };
+  static const size_t h0[] = { 6 };
+  static const size_t h1[] = { 13 };
+  static const size_t h2[] = { 14 };
+  static const size_t h3[] = { 15 };
 
   size_t count = sizeof(h0) / sizeof(h0[0]);
   size_t hash = 0;
@@ -96,12 +98,7 @@ size_t get_dram_mapping(void* phys_addr_p) {
   for (size_t i = 0; i < count; i++) {
     hash3 ^= (phys_addr >> h3[i]) & 1;
   }
-  count = sizeof(h4) / sizeof(h4[0]);
-  size_t hash4 = 0;
-  for (size_t i = 0; i < count; i++) {
-    hash4 ^= (phys_addr >> h4[i]) & 1;
-  }
-  return (hash4 << 4) | (hash3 << 3) | (hash2 << 2) | (hash1 << 1) | hash;
+  return (hash3 << 3) | (hash2 << 2) | (hash1 << 1) | hash;
 }
 
 uint64_t get_physical_addr(uint64_t virtual_addr) {
