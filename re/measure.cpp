@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
         failed++;
         if (failed > 10) {
             logWarning("%s\n", "Couldn't find set after 10 tries, giving up, sorry!");
-            break;
+            return 1;
         }
         logInfo("Searching for set %d (try %d)\n", found_sets + 1, failed);
         timing.clear();
