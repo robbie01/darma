@@ -138,23 +138,14 @@ long utime() {
     return (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
 }
 
-
-// ----------------------------------------------
-uint64_t rdtsc() {
-    uint64_t a;
-    asm volatile ("dsb sy" ::: "memory");
-    asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
-    return a;
+#include <time.h>
+static inline uint64_t rdtsc(void) {
+    struct timespec tv;
+    clock_gettime(CLOCK_MONOTONIC, &tv);
+    return ((uint64_t)tv.tv_sec) * 1000000000ULL + ((uint64_t)tv.tv_nsec);
 }
 
-// ----------------------------------------------
-uint64_t rdtsc2() {
-    uint64_t a;
-    asm volatile ("mrs %0, CNTVCT_EL0" : "=r" (a));
-    asm volatile ("dsb sy" ::: "memory");
-    return a;
-}
-
+#define rdtsc2 rdtsc
 
 // ----------------------------------------------
 uint64_t getTiming(pointer first, pointer second) {
