@@ -141,7 +141,7 @@ long utime() {
 #include <time.h>
 static inline uint64_t rdtsc(void) {
     struct timespec tv;
-    clock_gettime(CLOCK_MONOTONIC, &tv);
+    clock_gettime(CLOCK_MONOTONIC_RAW, &tv);
     return ((uint64_t)tv.tv_sec) * 1000000000ULL + ((uint64_t)tv.tv_nsec);
 }
 
