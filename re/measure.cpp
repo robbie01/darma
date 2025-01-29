@@ -138,14 +138,15 @@ long utime() {
     return (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
 }
 
-#include <time.h>
-static inline uint64_t rdtsc(void) {
+static inline struct timespec tsc(void) {
     struct timespec tv;
     clock_gettime(CLOCK_MONOTONIC_RAW, &tv);
-    return ((uint64_t)tv.tv_sec) * 1000000000ULL + ((uint64_t)tv.tv_nsec);
+    return tv; // just assume this worked
 }
 
-#define rdtsc2 rdtsc
+static inline uint64_t tdiff(struct timespec t0, struct timespec t1) {
+    return ((uint64_t)t1.tv_sec - (uint64_t)t0.tv_sec) * 1000000000ULL + (uint64_t)t1.tv_nsec - (uint64_t)t0.tv_nsec;
+}
 
 // ----------------------------------------------
 uint64_t getTiming(pointer first, pointer second) {
@@ -157,7 +158,7 @@ uint64_t getTiming(pointer first, pointer second) {
 
         for (int j = 0; j < 10; j++)
             sched_yield();
-        size_t t0 = rdtsc();
+        struct timespec t0 = tsc();
 
         while (number_of_reads-- > 0) {
             *f;
@@ -170,7 +171,7 @@ uint64_t getTiming(pointer first, pointer second) {
             asm volatile("dc civac, %0" : : "r" (s) : "memory");
         }
 
-        uint64_t res = (rdtsc2() - t0) / (num_reads);
+        uint64_t res = tdiff(t0, tsc()) / (num_reads);
         for (int j = 0; j < 10; j++)
             sched_yield();
         if (res < min_res)
